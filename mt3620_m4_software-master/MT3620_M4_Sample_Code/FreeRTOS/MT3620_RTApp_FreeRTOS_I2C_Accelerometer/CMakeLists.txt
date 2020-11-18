@@ -8,6 +8,8 @@
 
 cmake_minimum_required(VERSION 3.10)
 
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 # Configurations
 project(FreeRTOS_RTcore_I2C_Accelerometer)
 include(utils/cmake/utils.cmake)
@@ -26,7 +28,7 @@ add_compile_definitions(OSAI_FREERTOS)
 add_compile_definitions(OSAI_ENABLE_DMA)
 # When place CODE_REGION in FLASH instead of TCM, please enable this definition:
 # add_compile_definitions(M4_ENABLE_XIP_FLASH)
-add_link_options(-specs=nano.specs -specs=nosys.specs)
+# add_link_options(-specs=nano.specs -specs=nosys.specs)
 
 # Executable
 add_executable(${PROJECT_NAME}
@@ -60,8 +62,6 @@ set(INCLUDES
     edge-impulse-sdk/CMSIS/Core/Include
     )
 include_directories(${PROJECT_NAME} PUBLIC ${INCLUDES})
-INCLUDE_DIRECTORIES("/gcc-arm-none-eabi-9-2020-q2-update/arm-none-eabi/include/c++/9.3.1/")
-
 
 target_include_directories(${PROJECT_NAME} PUBLIC
                            ../../OS_HAL/inc

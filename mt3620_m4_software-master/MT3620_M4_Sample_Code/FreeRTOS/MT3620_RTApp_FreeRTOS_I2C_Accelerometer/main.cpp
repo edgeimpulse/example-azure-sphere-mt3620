@@ -33,6 +33,10 @@
  * MEDIATEK SOFTWARE AT ISSUE.
  */
 
+#include <cstdio>
+#include <stdio.h>
+#include <stdarg.h>
+
 #include "FreeRTOS.h"
 #include "task.h"
 #include "printf.h"
@@ -44,6 +48,8 @@
 
 #include "lsm6dso_driver.h"
 #include "lsm6dso_reg.h"
+
+#include "ei_run_classifier.h"
 
 /******************************************************************************/
 /* Configurations */
@@ -193,8 +199,8 @@ extern "C" _Noreturn void RTCoreMain(void)
 	mtk_os_hal_gpio_set_direction(gpio_led_red, OS_HAL_GPIO_DIR_OUTPUT);
 	mtk_os_hal_gpio_set_direction(gpio_led_green, OS_HAL_GPIO_DIR_OUTPUT);
 
-	mtk_os_hal_gpio_set_output(gpio_led_red, OS_HAL_GPIO_DATA_LOW);
-	mtk_os_hal_gpio_set_output(gpio_led_green, OS_HAL_GPIO_DATA_LOW);
+	mtk_os_hal_gpio_set_output(gpio_led_red, OS_HAL_GPIO_DATA_HIGH);
+	mtk_os_hal_gpio_set_output(gpio_led_green, OS_HAL_GPIO_DATA_HIGH);
 
 	printf("\nFreeRTOS I2C LSM6DSO Demo\n");
 
