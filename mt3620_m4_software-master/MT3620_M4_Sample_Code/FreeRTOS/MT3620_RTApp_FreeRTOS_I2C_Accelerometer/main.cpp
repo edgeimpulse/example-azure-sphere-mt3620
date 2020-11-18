@@ -33,10 +33,6 @@
  * MEDIATEK SOFTWARE AT ISSUE.
  */
 
-#include <cstdio>
-#include <stdio.h>
-#include <stdarg.h>
-
 #include "FreeRTOS.h"
 #include "task.h"
 #include "printf.h"
@@ -49,7 +45,9 @@
 #include "lsm6dso_driver.h"
 #include "lsm6dso_reg.h"
 
-#include "ei_run_classifier.h"
+// #include "ei_run_classifier.h"
+
+// void*   __dso_handle = (void*) &__dso_handle;
 
 /******************************************************************************/
 /* Configurations */
@@ -77,21 +75,21 @@ static uint8_t *i2c_rx_buf;
 /* Hook for "stack over flow". */
 extern "C" void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
 {
-	printf("%s: %s\n", __func__, pcTaskName);
+    printf("%s: %s\n", __func__, pcTaskName);
 }
 
 /* Hook for "memory allocation failed". */
 extern "C" void vApplicationMallocFailedHook(void)
 {
-	printf("%s\n", __func__);
+    printf("%s\n", __func__);
 }
 
 /* Hook for "printf". */
 extern "C" void _putchar(char character)
 {
-	mtk_os_hal_uart_put_char(uart_port_num, character);
-	if (character == '\n')
-		mtk_os_hal_uart_put_char(uart_port_num, '\r');
+    mtk_os_hal_uart_put_char(uart_port_num, character);
+    if (character == '\n')
+        mtk_os_hal_uart_put_char(uart_port_num, '\r');
 }
 
 /******************************************************************************/
@@ -99,118 +97,127 @@ extern "C" void _putchar(char character)
 /******************************************************************************/
 int32_t i2c_write(int *fD, uint8_t reg, uint8_t *buf, uint16_t len)
 {
-	if (buf == NULL)
-		return -1;
+    if (buf == NULL)
+        return -1;
 
-	if (len > (I2C_MAX_LEN-1))
-		return -1;
+    if (len > (I2C_MAX_LEN-1))
+        return -1;
 
-	i2c_tx_buf[0] = reg;
-	if (buf && len)
-		memcpy(&i2c_tx_buf[1], buf, len);
-	mtk_os_hal_i2c_write(i2c_port_num, i2c_lsm6dso_addr, i2c_tx_buf, len+1);
-	return 0;
+    i2c_tx_buf[0] = reg;
+    if (buf && len)
+        memcpy(&i2c_tx_buf[1], buf, len);
+    mtk_os_hal_i2c_write(i2c_port_num, i2c_lsm6dso_addr, i2c_tx_buf, len+1);
+    return 0;
 }
 
 int32_t i2c_read(int *fD, uint8_t reg, uint8_t *buf, uint16_t len)
 {
-	if (buf == NULL)
-		return -1;
+    if (buf == NULL)
+        return -1;
 
-	if (len > (I2C_MAX_LEN))
-		return -1;
+    if (len > (I2C_MAX_LEN))
+        return -1;
 
-	mtk_os_hal_i2c_write_read(i2c_port_num, i2c_lsm6dso_addr,
-					&reg, i2c_rx_buf, 1, len);
-	memcpy(buf, i2c_rx_buf, len);
-	return 0;
+    mtk_os_hal_i2c_write_read(i2c_port_num, i2c_lsm6dso_addr,
+                    &reg, i2c_rx_buf, 1, len);
+    memcpy(buf, i2c_rx_buf, len);
+    return 0;
 }
 
 void i2c_enum(void)
 {
-	uint8_t i;
-	uint8_t data;
+    uint8_t i;
+    uint8_t data;
 
-	printf("[ISU%d] Enumerate I2C Bus, Start\n", i2c_port_num);
-	for (i = 0 ; i < 0x80 ; i += 2) {
-		printf("[ISU%d] Address:0x%02X, ", i2c_port_num, i);
-		if (mtk_os_hal_i2c_read(i2c_port_num, i, &data, 1) == 0)
-			printf("Found 0x%02X\n", i);
-	}
-	printf("[ISU%d] Enumerate I2C Bus, Finish\n\n", i2c_port_num);
+    printf("[ISU%d] Enumerate I2C Bus, Start\n", i2c_port_num);
+    for (i = 0 ; i < 0x80 ; i += 2) {
+        printf("[ISU%d] Address:0x%02X, ", i2c_port_num, i);
+        if (mtk_os_hal_i2c_read(i2c_port_num, i, &data, 1) == 0)
+            printf("Found 0x%02X\n", i);
+    }
+    printf("[ISU%d] Enumerate I2C Bus, Finish\n\n", i2c_port_num);
 }
 
 int i2c_init(void)
 {
-	/* Allocate I2C buffer */
-	i2c_tx_buf = (uint8_t*)pvPortMalloc(I2C_MAX_LEN);
-	i2c_rx_buf = (uint8_t*)pvPortMalloc(I2C_MAX_LEN);
-	if (i2c_tx_buf == NULL || i2c_rx_buf == NULL) {
-		printf("Failed to allocate I2C buffer!\n");
-		return -1;
-	}
+    /* Allocate I2C buffer */
+    i2c_tx_buf = (uint8_t*)pvPortMalloc(I2C_MAX_LEN);
+    i2c_rx_buf = (uint8_t*)pvPortMalloc(I2C_MAX_LEN);
+    if (i2c_tx_buf == NULL || i2c_rx_buf == NULL) {
+        printf("Failed to allocate I2C buffer!\n");
+        return -1;
+    }
 
-	/* MT3620 I2C Init */
-	mtk_os_hal_i2c_ctrl_init(i2c_port_num);
-	mtk_os_hal_i2c_speed_init(i2c_port_num, i2c_speed);
+    /* MT3620 I2C Init */
+    mtk_os_hal_i2c_ctrl_init(i2c_port_num);
+    mtk_os_hal_i2c_speed_init(i2c_port_num, i2c_speed);
 
-	return 0;
+    return 0;
 }
 
 void i2c_task(void *pParameters)
 {
-	printf("I2C Task Started. (ISU%d)\n", i2c_port_num);
+    printf("I2C Task Started. (ISU%d)\n", i2c_port_num);
 
-	/* Enumerate I2C Bus*/
-	i2c_enum();
+    /* Enumerate I2C Bus*/
+    i2c_enum();
 
-	/* MT3620 I2C Init */
-	if (i2c_init())
-		return;
+    /* MT3620 I2C Init */
+    if (i2c_init())
+        return;
 
-	/* LSM6DSO Init */
-	if (lsm6dso_init((void*)i2c_write, (void*)i2c_read))
-		return;
+    /* LSM6DSO Init */
+    if (lsm6dso_init((void*)i2c_write, (void*)i2c_read))
+        return;
 
-	while (1) {
-		/* Delay 1 second */
-		vTaskDelay(pdMS_TO_TICKS(1000));
+    while (1) {
+        /* Delay 1 second */
+        vTaskDelay(pdMS_TO_TICKS(1000));
 
-		/* Show Result */
-		lsm6dso_show_result();
+        /* Show Result */
+        lsm6dso_show_result();
 
-		/* Trigger LED */
-		static bool led_status = false;
-		led_status = !led_status;
+        /* Trigger LED */
+        static bool led_status = false;
+        led_status = !led_status;
 
-		mtk_os_hal_gpio_set_output(gpio_led_red, led_status ? OS_HAL_GPIO_DATA_HIGH : OS_HAL_GPIO_DATA_LOW);
-	}
+        mtk_os_hal_gpio_set_output(gpio_led_red, led_status ? OS_HAL_GPIO_DATA_HIGH : OS_HAL_GPIO_DATA_LOW);
+    }
 }
 
 extern "C" _Noreturn void RTCoreMain(void)
 {
-	/* Setup Vector Table */
-	NVIC_SetupVectorTable();
+    /* Setup Vector Table */
+    NVIC_SetupVectorTable();
 
-	/* Init UART */
-	mtk_os_hal_uart_ctlr_init(uart_port_num);
+    /* Init UART */
+    mtk_os_hal_uart_ctlr_init(uart_port_num);
 
-	/* Init GPIO */
-	mtk_os_hal_gpio_set_direction(gpio_led_red, OS_HAL_GPIO_DIR_OUTPUT);
-	mtk_os_hal_gpio_set_direction(gpio_led_green, OS_HAL_GPIO_DIR_OUTPUT);
+    /* Init GPIO */
+    mtk_os_hal_gpio_set_direction(gpio_led_red, OS_HAL_GPIO_DIR_OUTPUT);
+    mtk_os_hal_gpio_set_direction(gpio_led_green, OS_HAL_GPIO_DIR_OUTPUT);
 
-	mtk_os_hal_gpio_set_output(gpio_led_red, OS_HAL_GPIO_DATA_HIGH);
-	mtk_os_hal_gpio_set_output(gpio_led_green, OS_HAL_GPIO_DATA_HIGH);
+    mtk_os_hal_gpio_set_output(gpio_led_red, OS_HAL_GPIO_DATA_LOW);
+    mtk_os_hal_gpio_set_output(gpio_led_green, OS_HAL_GPIO_DATA_HIGH);
 
-	printf("\nFreeRTOS I2C LSM6DSO Demo\n");
+    // while (1) {
+    //     static bool led_status = false;
+    //     led_status = !led_status;
 
-	/* Init I2C Master/Slave */
-	mtk_os_hal_i2c_ctrl_init(i2c_port_num);
+    //     mtk_os_hal_gpio_set_output(gpio_led_red, led_status ? OS_HAL_GPIO_DATA_HIGH : OS_HAL_GPIO_DATA_LOW);
 
-	/* Create I2C Master/Slave Task */
-	xTaskCreate(i2c_task, "I2C Task", APP_STACK_SIZE_BYTES, NULL, 4, NULL);
+    //     vTaskDelay(pdMS_TO_TICKS(500));
+    // }
 
-	vTaskStartScheduler();
-	for (;;)
-		__asm__("wfi");
+    printf("\nFreeRTOS I2C LSM6DSO Demo\n");
+
+    /* Init I2C Master/Slave */
+    mtk_os_hal_i2c_ctrl_init(i2c_port_num);
+
+    /* Create I2C Master/Slave Task */
+    xTaskCreate(i2c_task, "I2C Task", APP_STACK_SIZE_BYTES, NULL, 4, NULL);
+
+    vTaskStartScheduler();
+    for (;;)
+        __asm__("wfi");
 }
