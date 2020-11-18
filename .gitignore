@@ -1,0 +1,12 @@
+build/.ninja_deps
+build/.ninja_log
+build/Azure Sphere Tools
+build/CMakeCache.txt
+build/CMakeFiles
+build/*.imagepackage
+build/*.map
+build/*.out
+build/approot*
+build/build.ninja
+build/cmake_install.cmake
+build/lib
