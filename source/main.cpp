@@ -45,7 +45,7 @@ static float inference_buffer[EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE] = { 0 };
 // we look at 2 seconds of data + (length of window (e.g. also 2 seconds)) for the result
 
 // We use N number of readings to smoothen the results over
-#define SMOOTHEN_OVER_READINGS              6
+#define SMOOTHEN_OVER_READINGS              10
 // Time between readings in milliseconds
 #define SMOOTHEN_TIME_BETWEEN_READINGS      200
 
