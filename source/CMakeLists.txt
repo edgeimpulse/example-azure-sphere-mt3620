@@ -25,6 +25,7 @@ add_definitions(-DEIDSP_USE_CMSIS_DSP=0
                 -DEIDSP_TRACK_ALLOCATIONS=1
                 -DEIDSP_PRINT_ALLOCATIONS=0
                 -DEI_CLASSIFIER_ALLOCATION_STATIC
+                -DTF_LITE_STATIC_MEMORY
                 )
 
 add_compile_definitions(OSAI_FREERTOS)

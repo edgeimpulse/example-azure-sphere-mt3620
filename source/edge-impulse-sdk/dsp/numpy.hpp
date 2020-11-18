@@ -1574,7 +1574,7 @@ private:
         /* Create transposed matrix */
         arm_transposed_matrix.numRows = input_matrix->cols;
         arm_transposed_matrix.numCols = input_matrix->rows;
-        arm_transposed_matrix.pData = (float *)calloc(input_matrix->cols * input_matrix->rows * sizeof(float), 1);
+        arm_transposed_matrix.pData = (float *)ei_calloc(input_matrix->cols * input_matrix->rows * sizeof(float), 1);
 
         if (arm_transposed_matrix.pData == NULL) {
             EIDSP_ERR(EIDSP_OUT_OF_MEM);
@@ -1596,7 +1596,7 @@ private:
             output_matrix->buffer[row] = std;
         }
 
-        free(arm_transposed_matrix.pData);
+        ei_free(arm_transposed_matrix.pData);
 
         return EIDSP_OK;
     }

@@ -1,6 +1,10 @@
 # Edge Impulse example on Azure Sphere MT3620
 
-This is an example application that runs an embedded Machine Learning model on the realtime core of an Azure Sphere MT3620 board, classifying data coming in on the accelerometer.
+This is an example application that runs an embedded Machine Learning model on the *realtime core* of an Azure Sphere MT3620 board, classifying data coming in on the accelerometer. At [Edge Impulse](https://edgeimpulse.com) we enable developers to create the next generation of intelligent device solutions with embedded Machine Learning - especially when it comes to running ML models on microcontrollers.
+
+**Note:** This is a demonstration, and a fully supported target.
+
+[![ML on Azure Sphere MT3620](img/screenshot.png)](https://www.youtube.com/watch?v=rDuKwONerZI&amp;feature=youtu.be)
 
 ## Prerequisites
 
@@ -38,7 +42,7 @@ You'll also need:
 
 ## Updating your ML model
 
-To update the ML model you'll need a model trained on accelerometer data in Edge Impulse ([tutorial here](https://docs.edgeimpulse.com/docs/continuous-motion-recognition)). Then:
+To update the ML model you'll need a model trained on accelerometer data in Edge Impulse ([tutorial here](https://docs.edgeimpulse.com/docs/continuous-motion-recognition)). At the moment we don't have full support for data collection from the Azure Sphere, but you can use the [data forwarder](https://docs.edgeimpulse.com/docs/cli-data-forwarder) to stream accelerometer data, or use your [mobile phone](https://docs.edgeimpulse.com/docs/using-your-mobile-phone) to do so. Then:
 
 1. Remove the `model-parameters` and `tflite-model` folders (in the `source` directory).
 1. In the Edge Impulse Studio go to **Deployment**, and export as **C++ Library**.

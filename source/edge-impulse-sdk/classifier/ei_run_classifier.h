@@ -448,7 +448,7 @@ static EI_IMPULSE_ERROR inference_tflite_run(uint64_t ctx_start_ms,
         ei_aligned_free(tensor_arena);
         return EI_IMPULSE_TFLITE_ERROR;
     }
-    free(interpreter);
+    delete interpreter;
 #endif
 
     uint64_t ctx_end_ms = ei_read_timer_ms();

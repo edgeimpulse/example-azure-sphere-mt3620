@@ -17,6 +17,10 @@
 
 void*   __dso_handle = (void*) &__dso_handle;
 
+#if !defined(EI_CLASSIFIER_SENSOR) || EI_CLASSIFIER_SENSOR != EI_CLASSIFIER_SENSOR_ACCELEROMETER
+#error "Incompatible model, this example is only compatible with accelerometer data"
+#endif
+
 /******************************************************************************/
 /* Configurations */
 /******************************************************************************/
