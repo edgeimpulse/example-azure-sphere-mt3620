@@ -55,7 +55,7 @@ errata. */
 #define configTICK_RATE_HZ						( ( TickType_t ) 1000 )
 #define configMAX_PRIORITIES					( 10 )
 #define configMINIMAL_STACK_SIZE				( ( unsigned short ) 130 )
-#define configTOTAL_HEAP_SIZE					( ( size_t ) ( 64 * 1024 ) )
+#define configTOTAL_HEAP_SIZE					( ( size_t ) ( 32 * 1024 ) )
 #define configMAX_TASK_NAME_LEN					( 10 )
 #define configUSE_TRACE_FACILITY				1
 #define configUSE_16_BIT_TICKS					0
@@ -69,7 +69,7 @@ errata. */
 #define configUSE_COUNTING_SEMAPHORES			1
 #define configGENERATE_RUN_TIME_STATS			0
 #define configUSE_TIME_SLICING					0
-#define configHEAP_IN_SYSRAM					1
+#define configHEAP_IN_SYSRAM					0
 
 /* Co-routine definitions. */
 #define configUSE_CO_ROUTINES 			0
@@ -125,4 +125,3 @@ header file. */
 #define xPortSysTickHandler		SysTick_Handler
 
 #endif /* FREERTOS_CONFIG_H */
-

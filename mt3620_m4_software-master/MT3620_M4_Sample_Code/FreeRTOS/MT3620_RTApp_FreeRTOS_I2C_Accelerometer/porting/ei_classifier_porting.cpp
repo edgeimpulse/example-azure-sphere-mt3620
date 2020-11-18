@@ -30,6 +30,10 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "printf.h"
+#include "mt3620.h"
+#include "os_hal_uart.h"
+
+static const UART_PORT uart_port_num = OS_HAL_UART_ISU0;
 
 __attribute__((weak)) EI_IMPULSE_ERROR ei_run_impulse_check_canceled() {
     return EI_IMPULSE_OK;
@@ -52,14 +56,20 @@ uint64_t ei_read_timer_us() {
 }
 
 __attribute__((weak)) void ei_printf(const char *format, ...) {
-    va_list myargs;
-    va_start(myargs, format);
-    vprintf(format, myargs);
-    va_end(myargs);
+    char print_buf[1024] = { 0 };
+
+    va_list args;
+    va_start(args, format);
+    int r = vsnprintf(print_buf, sizeof(print_buf), format, args);
+    va_end(args);
+
+    for (int i = 0; i < r; i++) {
+        mtk_os_hal_uart_put_char(uart_port_num, print_buf[i]);
+    }
 }
 
 __attribute__((weak)) void ei_printf_float(float f) {
-    ei_printf("%f", f);
+    printf("%f", f);
 }
 
 #if defined(__cplusplus) && EI_C_LINKAGE == 1

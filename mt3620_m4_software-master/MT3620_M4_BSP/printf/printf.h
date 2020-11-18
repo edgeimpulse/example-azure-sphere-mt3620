@@ -83,9 +83,9 @@ int sprintf_(char* buffer, const char* format, ...);
  *         is non-negative and less than count, the string has been completely written.
  */
 #define snprintf  snprintf_
-#define vsnprintf vsnprintf_
+// #define vsnprintf vsnprintf_
 int  snprintf_(char* buffer, size_t count, const char* format, ...);
-int vsnprintf_(char* buffer, size_t count, const char* format, va_list va);
+// int vsnprintf_(char* buffer, size_t count, const char* format, va_list va);
 
 
 /**

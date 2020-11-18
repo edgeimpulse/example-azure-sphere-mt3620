@@ -23,8 +23,10 @@
 #ifndef _EIDSP_MEMORY_H_
 #define _EIDSP_MEMORY_H_
 
+#include "FreeRTOS.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 extern size_t ei_memory_in_use;
 extern size_t ei_memory_peak_use;
@@ -109,10 +111,8 @@ namespace ei {
     #define ei_dsp_register_matrix_alloc(...) (void)0
     #define ei_dsp_register_free(...) (void)0
     #define ei_dsp_register_matrix_free(...) (void)0
-    #define ei_dsp_malloc malloc
-    #define ei_dsp_calloc calloc
-    #define ei_dsp_realloc realloc
-    #define ei_dsp_free(ptr, size) free(ptr)
+    #define ei_dsp_malloc pvPortMalloc
+    #define ei_dsp_free(ptr, size) vPortFree(ptr)
     #define EI_DSP_MATRIX(name, ...) matrix_t name(__VA_ARGS__); if (!name.buffer) { EIDSP_ERR(EIDSP_OUT_OF_MEM); }
     #define EI_DSP_MATRIX_B(name, ...) matrix_t name(__VA_ARGS__); if (!name.buffer) { EIDSP_ERR(EIDSP_OUT_OF_MEM); }
     #define EI_DSP_QUANTIZED_MATRIX(name, ...) quantized_matrix_t name(__VA_ARGS__); if (!name.buffer) { EIDSP_ERR(EIDSP_OUT_OF_MEM); }
@@ -129,7 +129,7 @@ public:
      * @param size The size of the memory block, in bytes.
      */
     static void *ei_malloc(const char *fn, const char *file, int line, size_t size) {
-        void *ptr = malloc(size);
+        void *ptr = pvPortMalloc(size);
         if (ptr) {
             ei_dsp_register_alloc_internal(fn, file, line, size);
         }
@@ -143,9 +143,10 @@ public:
      * @param size Size of each element
      */
     static void *ei_calloc(const char *fn, const char *file, int line, size_t num, size_t size) {
-        void *ptr = calloc(num, size);
+        void *ptr = pvPortMalloc(num * size);
         if (ptr) {
             ei_dsp_register_alloc_internal(fn, file, line, num * size);
+            memset(ptr, 0, num * size);
         }
         return ptr;
     }
@@ -156,7 +157,7 @@ public:
      * @param size Size of the block of memory previously allocated.
      */
     static void ei_free(const char *fn, const char *file, int line, void *ptr, size_t size) {
-        free(ptr);
+        vPortFree(ptr);
         ei_dsp_register_free_internal(fn, file, line, size);
     }
 
@@ -167,12 +168,7 @@ public:
      * @param new_size Size of the new block.
      */
     static void *ei_realloc(const char *fn, const char *file, int line, void *ptr, size_t old_size, size_t new_size) {
-        void *new_ptr = realloc(ptr, new_size);
-        if (new_ptr) {
-            ei_dsp_register_free_internal(fn, file, line, old_size);
-            ei_dsp_register_alloc_internal(fn, file, line, new_size);
-        }
-        return new_ptr;
+        return (void*)0;
     }
 };
 #endif // #if EIDSP_TRACK_ALLOCATIONS

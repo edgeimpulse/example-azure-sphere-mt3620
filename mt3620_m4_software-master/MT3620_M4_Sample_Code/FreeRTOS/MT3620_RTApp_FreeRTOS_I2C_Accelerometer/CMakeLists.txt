@@ -22,6 +22,9 @@ add_definitions(-DEIDSP_USE_CMSIS_DSP=0
                 -DEI_CLASSIFIER_TFLITE_ENABLE_CMSIS_NN=0
                 -DEIDSP_QUANTIZE_FILTERBANK=0
                 -DARM_MATH_LOOPUNROLL
+                -DEIDSP_TRACK_ALLOCATIONS=1
+                -DEIDSP_PRINT_ALLOCATIONS=0
+                -DEI_CLASSIFIER_ALLOCATION_STATIC
                 )
 
 add_compile_definitions(OSAI_FREERTOS)
@@ -31,29 +34,23 @@ add_compile_definitions(M4_ENABLE_XIP_FLASH)
 add_link_options(-specs=nano.specs -specs=nosys.specs)
 
 # Executable
-add_executable(${PROJECT_NAME} ./main.cpp
-    ./lsm6dso_driver.c
-    ./lsm6dso_reg.c
-    ../../OS_HAL/src/os_hal_gpio.c
-    ../../OS_HAL/src/os_hal_uart.c
-    ../../OS_HAL/src/os_hal_dma.c
-    ../../OS_HAL/src/os_hal_i2c.c)
+add_executable(${PROJECT_NAME})
 
 # Include Folders
 # Edge impulse SDK include directories
 set(INCLUDES
     .
-    # tflite-model
-    # model-parameters
-    # edge-impulse-sdk
-    # edge-impulse-sdk/third_party/ruy
-    # edge-impulse-sdk/third_party/gemmlowp
-    # edge-impulse-sdk/third_party/flatbuffers/include
-    # edge-impulse-sdk/third_party
-    # edge-impulse-sdk/tensorflow
-    # edge-impulse-sdk/dsp
-    # edge-impulse-sdk/classifier
-    # edge-impulse-sdk/anomaly
+    tflite-model
+    model-parameters
+    edge-impulse-sdk
+    edge-impulse-sdk/third_party/ruy
+    edge-impulse-sdk/third_party/gemmlowp
+    edge-impulse-sdk/third_party/flatbuffers/include
+    edge-impulse-sdk/third_party
+    edge-impulse-sdk/tensorflow
+    edge-impulse-sdk/dsp
+    edge-impulse-sdk/classifier
+    edge-impulse-sdk/anomaly
     )
 include_directories(${PROJECT_NAME} PUBLIC ${INCLUDES})
 
@@ -61,25 +58,24 @@ target_include_directories(${PROJECT_NAME} PUBLIC
                            ../../OS_HAL/inc
                            ./)
 
-#RECURSIVE_FIND_FILE(SOURCE_FILES "edge-impulse-sdk" "*.cpp")
-#RECURSIVE_FIND_FILE(MODEL_FILES "tflite-model" "*.cpp")
-#RECURSIVE_FIND_FILE(CC_FILES "edge-impulse-sdk" "*.cc")
-#RECURSIVE_FIND_FILE(S_FILES "edge-impulse-sdk" "*.s")
-#RECURSIVE_FIND_FILE(C_FILES "edge-impulse-sdk" "*.c")
-#list(APPEND SOURCE_FILES ${S_FILES})
-#list(APPEND SOURCE_FILES ${C_FILES})
-#list(APPEND SOURCE_FILES ${CC_FILES})
-#list(APPEND SOURCE_FILES ${MODEL_FILES})
-#
-## Exclude the CMSIS folders, I don't have time to fix all of this
-#set(EXCLUDE_DIR "/CMSIS/")
-#foreach (TMP_PATH ${SOURCE_FILES})
-#    string (FIND ${TMP_PATH} ${EXCLUDE_DIR} EXCLUDE_DIR_FOUND)
-#    if (NOT ${EXCLUDE_DIR_FOUND} EQUAL -1)
-#        list (REMOVE_ITEM SOURCE_FILES ${TMP_PATH})
-#    endif ()
-#endforeach(TMP_PATH)
+RECURSIVE_FIND_FILE(SOURCE_FILES "edge-impulse-sdk" "*.cpp")
+RECURSIVE_FIND_FILE(MODEL_FILES "tflite-model" "*.cpp")
+RECURSIVE_FIND_FILE(CC_FILES "edge-impulse-sdk" "*.cc")
+RECURSIVE_FIND_FILE(S_FILES "edge-impulse-sdk" "*.s")
+RECURSIVE_FIND_FILE(C_FILES "edge-impulse-sdk" "*.c")
+list(APPEND SOURCE_FILES ${S_FILES})
+list(APPEND SOURCE_FILES ${C_FILES})
+list(APPEND SOURCE_FILES ${CC_FILES})
+list(APPEND SOURCE_FILES ${MODEL_FILES})
 
+# Exclude the CMSIS folders, I don't have time to fix all of this
+set(EXCLUDE_DIR "/CMSIS/")
+foreach (TMP_PATH ${SOURCE_FILES})
+    string (FIND ${TMP_PATH} ${EXCLUDE_DIR} EXCLUDE_DIR_FOUND)
+    if (NOT ${EXCLUDE_DIR_FOUND} EQUAL -1)
+        list (REMOVE_ITEM SOURCE_FILES ${TMP_PATH})
+    endif ()
+endforeach(TMP_PATH)
 
 # target_sources(${PROJECT_NAME} PRIVATE ${SOURCE_FILES})
 
@@ -87,15 +83,16 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 
 
 # Executable
-#target_sources(${PROJECT_NAME} PRIVATE ${SOURCE_FILES})
-#target_sources(${PROJECT_NAME} PRIVATE ./lsm6dso_driver.c)
-#target_sources(${PROJECT_NAME} PRIVATE ./lsm6dso_reg.c)
-# target_sources(${PROJECT_NAME} PRIVATE ./porting/debug_log.cpp)
-# target_sources(${PROJECT_NAME} PRIVATE ./porting/ei_classifier_porting.cpp)
-#target_sources(${PROJECT_NAME} PRIVATE ../../OS_HAL/src/os_hal_gpio.c)
-#target_sources(${PROJECT_NAME} PRIVATE ../../OS_HAL/src/os_hal_uart.c)
-#target_sources(${PROJECT_NAME} PRIVATE ../../OS_HAL/src/os_hal_dma.c)
-#target_sources(${PROJECT_NAME} PRIVATE ../../OS_HAL/src/os_hal_i2c.c)
+target_sources(${PROJECT_NAME} PRIVATE ${SOURCE_FILES})
+target_sources(${PROJECT_NAME} PRIVATE ./main.cpp)
+target_sources(${PROJECT_NAME} PRIVATE ./lsm6dso_driver.c)
+target_sources(${PROJECT_NAME} PRIVATE ./lsm6dso_reg.c)
+target_sources(${PROJECT_NAME} PRIVATE ./porting/debug_log.cpp)
+target_sources(${PROJECT_NAME} PRIVATE ./porting/ei_classifier_porting.cpp)
+target_sources(${PROJECT_NAME} PRIVATE ../../OS_HAL/src/os_hal_gpio.c)
+target_sources(${PROJECT_NAME} PRIVATE ../../OS_HAL/src/os_hal_uart.c)
+target_sources(${PROJECT_NAME} PRIVATE ../../OS_HAL/src/os_hal_dma.c)
+target_sources(${PROJECT_NAME} PRIVATE ../../OS_HAL/src/os_hal_i2c.c)
 
 # Libraries
 set(OSAI_FREERTOS 1)

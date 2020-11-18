@@ -57,6 +57,26 @@ static float lsm6dsoTemperature_degC;
 /******************************************************************************/
 /* Functions */
 /******************************************************************************/
+void lsm6dso_read(float *x, float *y, float *z) {
+	uint8_t reg;
+
+	/* Read output only if new xl value is available */
+	lsm6dso_xl_flag_data_ready_get(&dev_ctx, &reg);
+	if (reg) {
+		/* Read acceleration field data */
+		memset(data_raw_acceleration.u8bit, 0x00, 3 * sizeof(int16_t));
+		lsm6dso_acceleration_raw_get(&dev_ctx, data_raw_acceleration.u8bit);
+
+		acceleration_mg[0] = lsm6dso_from_fs4_to_mg(data_raw_acceleration.i16bit[0]);
+		acceleration_mg[1] = lsm6dso_from_fs4_to_mg(data_raw_acceleration.i16bit[1]);
+		acceleration_mg[2] = lsm6dso_from_fs4_to_mg(data_raw_acceleration.i16bit[2]);
+	}
+
+	*x = acceleration_mg[0];
+	*y = acceleration_mg[1];
+	*z = acceleration_mg[2];
+}
+
 void lsm6dso_show_result(void)
 {
 	uint8_t reg;
@@ -140,11 +160,11 @@ int lsm6dso_init(void *i2c_write, void *i2c_read)
 	lsm6dso_block_data_update_set(&dev_ctx, PROPERTY_ENABLE);
 
 	/* Set Output Data Rate */
-	lsm6dso_xl_data_rate_set(&dev_ctx, LSM6DSO_XL_ODR_12Hz5);
-	lsm6dso_gy_data_rate_set(&dev_ctx, LSM6DSO_GY_ODR_12Hz5);
+	lsm6dso_xl_data_rate_set(&dev_ctx, LSM6DSO_XL_ODR_104Hz);
+	lsm6dso_gy_data_rate_set(&dev_ctx, LSM6DSO_GY_ODR_104Hz);
 
 	/* Set full scale */
-	lsm6dso_xl_full_scale_set(&dev_ctx, LSM6DSO_4g);
+	lsm6dso_xl_full_scale_set(&dev_ctx, LSM6DSO_2g);
 	lsm6dso_gy_full_scale_set(&dev_ctx, LSM6DSO_2000dps);
 
 	/* Configure filtering chain(No aux interface) */
@@ -152,50 +172,49 @@ int lsm6dso_init(void *i2c_write, void *i2c_read)
 	lsm6dso_xl_hp_path_on_out_set(&dev_ctx, LSM6DSO_LP_ODR_DIV_100);
 	lsm6dso_xl_filter_lp2_set(&dev_ctx, PROPERTY_ENABLE);
 
-	printf("LSM6DSO: Calibrating angular rate...\n");
-	printf("LSM6DSO: Please make sure the device is stationary.\n");
-	do {
-		/* Delay and read the device until we have data! */
-		do {
-			/* Read the calibration values */
-			vTaskDelay(pdMS_TO_TICKS(5000));
-			lsm6dso_gy_flag_data_ready_get(&dev_ctx, &reg);
-		} while (!reg);
+	// printf("LSM6DSO: Calibrating angular rate...\n");
+	// printf("LSM6DSO: Please make sure the device is stationary.\n");
+	// do {
+	// 	/* Delay and read the device until we have data! */
+	// 	do {
+	// 		/* Read the calibration values */
+	// 		vTaskDelay(pdMS_TO_TICKS(5000));
+	// 		lsm6dso_gy_flag_data_ready_get(&dev_ctx, &reg);
+	// 	} while (!reg);
 
-		printf("LSM6DSO: calibration on-going...\n");
-		if (reg) {
-			/* Read angular rate field data to use for calibration offsets */
-			memset(data_raw_angular_rate.u8bit, 0x00, 3 * sizeof(int16_t));
-			lsm6dso_angular_rate_raw_get(&dev_ctx, raw_angular_rate_calibration.u8bit);
-		}
+	// 	printf("LSM6DSO: calibration on-going...\n");
+	// 	if (reg) {
+	// 		/* Read angular rate field data to use for calibration offsets */
+	// 		memset(data_raw_angular_rate.u8bit, 0x00, 3 * sizeof(int16_t));
+	// 		lsm6dso_angular_rate_raw_get(&dev_ctx, raw_angular_rate_calibration.u8bit);
+	// 	}
 
-		/* Delay and read the device until we have data! */
-		do {
-			/* Read the calibration values */
-			vTaskDelay(pdMS_TO_TICKS(5000));
-			lsm6dso_gy_flag_data_ready_get(&dev_ctx, &reg);
-		} while (!reg);
+	// 	/* Delay and read the device until we have data! */
+	// 	do {
+	// 		/* Read the calibration values */
+	// 		vTaskDelay(pdMS_TO_TICKS(5000));
+	// 		lsm6dso_gy_flag_data_ready_get(&dev_ctx, &reg);
+	// 	} while (!reg);
 
-		/* Read the angular data rate again and verify that after applying the calibration,
-		 * we have 0 angular rate in all directions
-		*/
-		if (reg) {
-			/* Read angular rate field data */
-			memset(data_raw_angular_rate.u8bit, 0x00, 3 * sizeof(int16_t));
-			lsm6dso_angular_rate_raw_get(&dev_ctx, data_raw_angular_rate.u8bit);
+	// 	/* Read the angular data rate again and verify that after applying the calibration,
+	// 	 * we have 0 angular rate in all directions
+	// 	*/
+	// 	if (reg) {
+	// 		/* Read angular rate field data */
+	// 		memset(data_raw_angular_rate.u8bit, 0x00, 3 * sizeof(int16_t));
+	// 		lsm6dso_angular_rate_raw_get(&dev_ctx, data_raw_angular_rate.u8bit);
 
-			/* Before we store the mdps values subtract the calibration data we captured at startup. */
-			angular_rate_dps[0] = lsm6dso_from_fs2000_to_mdps(data_raw_angular_rate.i16bit[0] -
-						raw_angular_rate_calibration.i16bit[0]);
-			angular_rate_dps[1] = lsm6dso_from_fs2000_to_mdps(data_raw_angular_rate.i16bit[1] -
-						raw_angular_rate_calibration.i16bit[1]);
-			angular_rate_dps[2] = lsm6dso_from_fs2000_to_mdps(data_raw_angular_rate.i16bit[2] -
-						raw_angular_rate_calibration.i16bit[2]);
-		}
-		/* If the angular values after applying the offset are not all 0.0s, then do it again! */
-	} while ((angular_rate_dps[0] != 0.0) || (angular_rate_dps[1] != 0.0) || (angular_rate_dps[2] != 0.0));
-	printf("LSM6DSO: Calibrating angular rate complete!\n");
+	// 		/* Before we store the mdps values subtract the calibration data we captured at startup. */
+	// 		angular_rate_dps[0] = lsm6dso_from_fs2000_to_mdps(data_raw_angular_rate.i16bit[0] -
+	// 					raw_angular_rate_calibration.i16bit[0]);
+	// 		angular_rate_dps[1] = lsm6dso_from_fs2000_to_mdps(data_raw_angular_rate.i16bit[1] -
+	// 					raw_angular_rate_calibration.i16bit[1]);
+	// 		angular_rate_dps[2] = lsm6dso_from_fs2000_to_mdps(data_raw_angular_rate.i16bit[2] -
+	// 					raw_angular_rate_calibration.i16bit[2]);
+	// 	}
+	// 	/* If the angular values after applying the offset are not all 0.0s, then do it again! */
+	// } while ((angular_rate_dps[0] != 0.0) || (angular_rate_dps[1] != 0.0) || (angular_rate_dps[2] != 0.0));
+	// printf("LSM6DSO: Calibrating angular rate complete!\n");
 
 	return 0;
 }
-

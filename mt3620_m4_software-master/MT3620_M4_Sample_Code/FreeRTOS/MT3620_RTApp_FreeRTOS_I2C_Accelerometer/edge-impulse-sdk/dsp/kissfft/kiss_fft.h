@@ -37,8 +37,9 @@ extern "C" {
 #define KISS_FFT_MALLOC(nbytes) _mm_malloc(nbytes,16)
 #define KISS_FFT_FREE _mm_free
 #else
-#define KISS_FFT_MALLOC malloc
-#define KISS_FFT_FREE free
+#include "FreeRTOS.h"
+#define KISS_FFT_MALLOC pvPortMalloc
+#define KISS_FFT_FREE vPortFree
 #endif
 
 
