@@ -33,3 +33,14 @@ You'll also need:
     ```
 
 1. You should now see data coming in from the FTDI Breakout board.
+
+## Updating your ML model
+
+To update the ML model you'll need a model trained on accelerometer data in Edge Impulse ([tutorial here](https://docs.edgeimpulse.com/docs/continuous-motion-recognition)). Then:
+
+1. Remove the `model-parameters` and `tflite-model` folders (in the `source` directory).
+1. In the Edge Impulse Studio go to **Deployment**, and export as **C++ Library**.
+1. Drag the `model-parameters` and `tflite-model` from the ZIP into the `source` directory.
+1. Recompile your application, and you're good to go 🚀
+
+> **Note:** Don't update the `edge-impulse-sdk` folder. It contains modifications to work with the Azure Sphere.
