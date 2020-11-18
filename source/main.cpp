@@ -170,7 +170,7 @@ static int roll_int(int *input_array, size_t input_array_size, int shift) {
 void inference_task(void *pParameters)
 {
     static int last_readings[SMOOTHEN_OVER_READINGS] = { -1 };
-    static bool first_reading = false;
+    static bool first_reading = true;
 
     printf("Inference Task Started\n");
 
