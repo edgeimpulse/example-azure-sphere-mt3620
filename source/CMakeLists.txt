@@ -22,8 +22,6 @@ add_definitions(-DEIDSP_USE_CMSIS_DSP=0
                 -DEI_CLASSIFIER_TFLITE_ENABLE_CMSIS_NN=0
                 -DEIDSP_QUANTIZE_FILTERBANK=0
                 -DARM_MATH_LOOPUNROLL
-                -DEIDSP_TRACK_ALLOCATIONS=1
-                -DEIDSP_PRINT_ALLOCATIONS=0
                 -DEI_CLASSIFIER_ALLOCATION_STATIC
                 -DTF_LITE_STATIC_MEMORY
                 )

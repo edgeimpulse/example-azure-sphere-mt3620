@@ -139,54 +139,25 @@ int i2c_init(void)
     return 0;
 }
 
-/**
- * Roll array elements along a given axis.
- * Elements that roll beyond the last position are re-introduced at the first.
- * @param input_array
- * @param input_array_size
- * @param shift The number of places by which elements are shifted.
- * @returns EIDSP_OK if OK
- */
-static int roll_int(int *input_array, size_t input_array_size, int shift) {
-    if (shift < 0) {
-        shift = input_array_size + shift;
-    }
-
-    if (shift == 0) {
-        return EIDSP_OK;
-    }
-
-    // so we need to allocate a buffer of the size of shift...
-    EI_DSP_MATRIX(shift_matrix, 1, shift);
-
-    // we copy from the end of the buffer into the shift buffer
-    memcpy(shift_matrix.buffer, input_array + input_array_size - shift, shift * sizeof(int));
-
-    // now we do a memmove to shift the array
-    memmove(input_array + shift, input_array, (input_array_size - shift) * sizeof(int));
-
-    // and copy the shift buffer back to the beginning of the array
-    memcpy(input_array, shift_matrix.buffer, shift * sizeof(int));
-
-    return EIDSP_OK;
-}
-
 void inference_task(void *pParameters)
 {
-    static int last_readings[SMOOTHEN_OVER_READINGS] = { -1 };
+    // struct that smoothens out the readings over time, to avoid misclassification if a single frame
+    // happened to overlap with one of the classes in our training set
+    ei_classifier_smoothen_t smoothen;
+
+    ei_classifier_smoothen_init(&smoothen, SMOOTHEN_OVER_READINGS, SMOOTHEN_OVER_READINGS * 0.7,
+        0.8 /* confidence */, 0.3 /* max anomaly score */);
+
     static bool first_reading = true;
 
     printf("Inference Task Started\n");
 
     // wait until we have a full frame of data
-    vTaskDelay(pdMS_TO_TICKS((EI_CLASSIFIER_INTERVAL_MS * EI_CLASSIFIER_RAW_SAMPLE_COUNT) + SMOOTHEN_OVER_READINGS));
+    vTaskDelay(pdMS_TO_TICKS((EI_CLASSIFIER_INTERVAL_MS * EI_CLASSIFIER_RAW_SAMPLE_COUNT)));
 
     while (1) {
         // copy into working buffer (other buffer is used by other task)
         memcpy(inference_buffer, buffer, EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE * sizeof(float));
-
-        // roll through the last_readings buffer
-        roll_int(last_readings, SMOOTHEN_OVER_READINGS, -1);
 
         // Turn the raw buffer in a signal which we can the classify
         signal_t signal;
@@ -200,7 +171,6 @@ void inference_task(void *pParameters)
 
         // invoke the impulse
         EI_IMPULSE_ERROR res = run_classifier(&signal, &result, false);
-
         if (res != 0) {
             printf("run_classifier returned: %d\n", res);
             return;
@@ -212,82 +182,13 @@ void inference_task(void *pParameters)
             first_reading = false;
         }
 
-        int reading = -1; // uncertain
-
-        // print the predictions
-        // printf("[");
-        for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
-            if (result.classification[ix].value > 0.8) {
-                reading = (int)ix;
-            }
-
-            // printf("%.5f", result.classification[ix].value);
-    #if EI_CLASSIFIER_HAS_ANOMALY == 1
-            // printf(", ");
-    #else
-            if (ix != EI_CLASSIFIER_LABEL_COUNT - 1) {
-                // printf(", ");
-            }
-    #endif
-        }
-    #if EI_CLASSIFIER_HAS_ANOMALY == 1
-        if (result.anomaly > 0.3) {
-            reading = -2; // anomaly
-        }
-        // printf("%.3f", result.anomaly);
-    #endif
-        // printf("]\n");
-
-        last_readings[SMOOTHEN_OVER_READINGS - 1] = reading;
-
-        // now count last 10 readings and see what we actually see...
-        uint8_t count[EI_CLASSIFIER_LABEL_COUNT + 2] = { 0 };
-        for (size_t ix = 0; ix < SMOOTHEN_OVER_READINGS; ix++) {
-            if (last_readings[ix] >= 0) {
-                count[last_readings[ix]]++;
-            }
-            else if (last_readings[ix] == -1) { // uncertain
-                count[EI_CLASSIFIER_LABEL_COUNT]++;
-            }
-            else if (last_readings[ix] == -2) { // anomaly
-                count[EI_CLASSIFIER_LABEL_COUNT + 1]++;
-            }
-        }
-
-        // then loop over the count and see which is highest
-        uint8_t top_result = 0;
-        uint8_t top_count = 0;
-        bool met_confidence_threshold = false;
-        uint8_t confidence_threshold = SMOOTHEN_OVER_READINGS * 0.7; // 70% of windows should be the same
-        for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT + 2; ix++) {
-            if (count[ix] > top_count) {
-                top_result = ix;
-                top_count = count[ix];
-            }
-            if (count[ix] > confidence_threshold) {
-                met_confidence_threshold = true;
-            }
-        }
-
-        if (met_confidence_threshold) {
-            if (top_result == EI_CLASSIFIER_LABEL_COUNT) {
-                printf("UNCERTAIN");
-            }
-            else if (top_result == EI_CLASSIFIER_LABEL_COUNT + 1) {
-                printf("ANOMALY");
-            }
-            else {
-                printf("%s", result.classification[top_result].label);
-            }
-        }
-        else {
-            printf("UNCERTAIN");
-        }
+        const char *prediction = ei_classifier_smoothen_update(&smoothen, &result);
+        printf("%s", prediction);
 
         printf(" [ ");
-        for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT + 2; ix++) {
-            printf("%u", count[ix]);
-            if (ix != EI_CLASSIFIER_LABEL_COUNT + 1) {
+        for (size_t ix = 0; ix < smoothen.count_size; ix++) {
+            printf("%u", smoothen.count[ix]);
+            if (ix != smoothen.count_size + 1) {
                 printf(", ");
             }
         }
@@ -295,7 +196,10 @@ void inference_task(void *pParameters)
 
         vTaskDelay(pdMS_TO_TICKS(SMOOTHEN_TIME_BETWEEN_READINGS));
     }
+
+    ei_classifier_smoothen_free(&smoothen);
 }
+
 void i2c_task(void *pParameters)
 {
     /* Enumerate I2C Bus*/

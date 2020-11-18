@@ -29,6 +29,7 @@
 #endif
 #include "ei_run_dsp.h"
 #include "ei_classifier_types.h"
+#include "ei_classifier_smoothen.h"
 #if defined(EI_CLASSIFIER_HAS_SAMPLER) && EI_CLASSIFIER_HAS_SAMPLER == 1
 #include "ei_sampler.h"
 #endif
