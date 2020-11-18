@@ -89,14 +89,14 @@ target_sources(${PROJECT_NAME} PRIVATE ./lsm6dso_driver.c)
 target_sources(${PROJECT_NAME} PRIVATE ./lsm6dso_reg.c)
 target_sources(${PROJECT_NAME} PRIVATE ./porting/debug_log.cpp)
 target_sources(${PROJECT_NAME} PRIVATE ./porting/ei_classifier_porting.cpp)
-target_sources(${PROJECT_NAME} PRIVATE ../../OS_HAL/src/os_hal_gpio.c)
-target_sources(${PROJECT_NAME} PRIVATE ../../OS_HAL/src/os_hal_uart.c)
-target_sources(${PROJECT_NAME} PRIVATE ../../OS_HAL/src/os_hal_dma.c)
-target_sources(${PROJECT_NAME} PRIVATE ../../OS_HAL/src/os_hal_i2c.c)
+target_sources(${PROJECT_NAME} PRIVATE ../mt3620_m4_software-master/MT3620_M4_Sample_Code/OS_HAL/src/os_hal_gpio.c)
+target_sources(${PROJECT_NAME} PRIVATE ../mt3620_m4_software-master/MT3620_M4_Sample_Code/OS_HAL/src/os_hal_uart.c)
+target_sources(${PROJECT_NAME} PRIVATE ../mt3620_m4_software-master/MT3620_M4_Sample_Code/OS_HAL/src/os_hal_dma.c)
+target_sources(${PROJECT_NAME} PRIVATE ../mt3620_m4_software-master/MT3620_M4_Sample_Code/OS_HAL/src/os_hal_i2c.c)
 
 # Libraries
 set(OSAI_FREERTOS 1)
-add_subdirectory(../../../MT3620_M4_Driver ./lib/MT3620_M4_Driver)
+add_subdirectory(../mt3620_m4_software-master/MT3620_M4_Driver ./lib/MT3620_M4_Driver)
 target_link_libraries(${PROJECT_NAME} MT3620_M4_Driver)
 
 # Linker, Image
