@@ -1,5 +1,7 @@
 # Edge Impulse example on Azure Sphere MT3620
 
+This is an example application that runs an embedded Machine Learning model on the realtime core of an Azure Sphere MT3620 board, classifying data coming in on the accelerometer.
+
 ## Prerequisites
 
 You'll need:
