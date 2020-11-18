@@ -48,11 +48,11 @@ __attribute__((weak)) EI_IMPULSE_ERROR ei_sleep(int32_t time_ms) {
 }
 
 uint64_t ei_read_timer_ms() {
-    return 0;
+    return xTaskGetTickCount();
 }
 
 uint64_t ei_read_timer_us() {
-    return 0;
+    return xTaskGetTickCount() * 1000;
 }
 
 __attribute__((weak)) void ei_printf(const char *format, ...) {

@@ -1,42 +1,5 @@
-/*
- * (C) 2005-2020 MediaTek Inc. All rights reserved.
- *
- * Copyright Statement:
- *
- * This MT3620 driver software/firmware and related documentation
- * ("MediaTek Software") are protected under relevant copyright laws.
- * The information contained herein is confidential and proprietary to
- * MediaTek Inc. ("MediaTek"). You may only use, reproduce, modify, or
- * distribute (as applicable) MediaTek Software if you have agreed to and been
- * bound by this Statement and the applicable license agreement with MediaTek
- * ("License Agreement") and been granted explicit permission to do so within
- * the License Agreement ("Permitted User"). If you are not a Permitted User,
- * please cease any access or use of MediaTek Software immediately.
- *
- * BY OPENING THIS FILE, RECEIVER HEREBY UNEQUIVOCALLY ACKNOWLEDGES AND AGREES
- * THAT MEDIATEK SOFTWARE RECEIVED FROM MEDIATEK AND/OR ITS REPRESENTATIVES ARE
- * PROVIDED TO RECEIVER ON AN "AS-IS" BASIS ONLY. MEDIATEK EXPRESSLY DISCLAIMS
- * ANY AND ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE OR
- * NONINFRINGEMENT. NEITHER DOES MEDIATEK PROVIDE ANY WARRANTY WHATSOEVER WITH
- * RESPECT TO THE SOFTWARE OF ANY THIRD PARTY WHICH MAY BE USED BY,
- * INCORPORATED IN, OR SUPPLIED WITH MEDIATEK SOFTWARE, AND RECEIVER AGREES TO
- * LOOK ONLY TO SUCH THIRD PARTY FOR ANY WARRANTY CLAIM RELATING THERETO.
- * RECEIVER EXPRESSLY ACKNOWLEDGES THAT IT IS RECEIVER'S SOLE RESPONSIBILITY TO
- * OBTAIN FROM ANY THIRD PARTY ALL PROPER LICENSES CONTAINED IN MEDIATEK
- * SOFTWARE. MEDIATEK SHALL ALSO NOT BE RESPONSIBLE FOR ANY MEDIATEK SOFTWARE
- * RELEASES MADE TO RECEIVER'S SPECIFICATION OR TO CONFORM TO A PARTICULAR
- * STANDARD OR OPEN FORUM. RECEIVER'S SOLE AND EXCLUSIVE REMEDY AND MEDIATEK'S
- * ENTIRE AND CUMULATIVE LIABILITY WITH RESPECT TO MEDIATEK SOFTWARE RELEASED
- * HEREUNDER WILL BE ANY SOFTWARE LICENSE FEES OR SERVICE CHARGE PAID BY
- * RECEIVER TO MEDIATEK DURING THE PRECEDING TWELVE (12) MONTHS FOR SUCH
- * MEDIATEK SOFTWARE AT ISSUE.
- */
-
 #include <cstdio>
 #include <stdio.h>
-#include <time.h>
-
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -75,16 +38,16 @@ static uint8_t *i2c_rx_buf;
 #define APP_STACK_SIZE_BYTES 1024
 
 // Edge Impulse
-const float features[] = {
-    1.8400, -1.5700, 10.4200, 1.8400, -1.5700, 10.4200, 1.4100, -0.9100, 9.7000, 1.5300, -0.9300, 10.1800, 1.4800, -1.0600, 9.6200, 1.3000, -0.6700, 10.2100, 0.3900, 1.0500, 10.0900, 1.2600, 2.1100, 9.7000, 1.2600, 2.1100, 9.7000, 1.3700, 2.5500, 9.0600, 1.5800, 2.4400, 9.7100, 0.9400, 1.6100, 10.0200, 1.5600, 1.3900, 9.5500, 1.7600, 1.7900, 9.4200, 0.6200, 2.3900, 9.4300, 0.6200, 2.3900, 9.4300, -0.6200, 2.5200, 8.9400, 1.1600, 3.6900, 9.0300, 0.2500, 3.2400, 8.5700, -0.1300, 4.0500, 8.8800, -0.8800, 3.7700, 8.9700, -2.0000, 2.8200, 9.1300, -2.0000, 2.8200, 9.1300, -0.4800, 2.2800, 8.5500, 0.4300, 0.8300, 10.0200, -0.7500, 1.2800, 8.7000, -0.1200, 1.7000, 8.8900, -0.5700, 1.3200, 9.9900, 0.2900, 0.5400, 10.0600, 0.2900, 0.5400, 10.0600, -0.7300, -0.0100, 10.2200, -2.0400, -0.7600, 10.1300, -2.2700, -1.2400, 10.0200, -1.3700, -1.2500, 10.1900, -0.3600, -1.0200, 9.5300, -0.5800, -1.2100, 10.1000, -0.5800, -1.2100, 10.1000, 0.2900, -1.5200, 10.0100, 0.2400, -1.8600, 10.2200, -0.4200, -2.3100, 9.9600, -1.0900, -1.7500, 9.9800, -0.4300, -0.1300, 10.3100, -0.4300, -0.1300, 10.3100, 1.2300, 0.2000, 9.4800, 0.0900, -0.4900, 10.2500, 0.9900, -0.0900, 9.6300, 1.2400, -0.6000, 9.6200, 0.1000, -0.3300, 9.0200, 0.7300, -1.5100, 9.6400, 0.7300, -1.5100, 9.6400, 0.7000, -2.4800, 8.7300, 0.6500, -1.3300, 9.5000, 1.7700, -0.7400, 9.4200, 0.2200, -1.0800, 9.2000, 1.5500, -1.1500, 9.4600, 1.4400, -1.4100, 9.0300, 1.4400, -1.4100, 9.0300, 1.6800, -1.1900, 9.7500, 1.3300, -0.2100, 9.8600, 2.1900, 1.3200, 10.1700, 1.7900, 1.9100, 10.4400, 1.0800, 1.4200, 9.8900, 1.5100, 1.8400, 9.8500, 1.5100, 1.8400, 9.8500, 1.3900, 2.3300, 10.1600, 0.3400, 2.8900, 9.9900, 0.6900, 3.2000, 10.3700, 0.5900, 3.4900, 9.8600, 0.9100, 3.0700, 10.0600, 0.0400, 3.2500, 9.8200, 0.0400, 3.2500, 9.8200, -0.9300, 2.6900, 10.1600, -1.3900, 2.2200, 10.0100, 0.6300, 2.8100, 9.5300, 0.7300, 2.5600, 9.9400, 0.7300, 2.3600, 10.1300, -0.7900, 0.6700, 9.8700, -0.7900, 0.6700, 9.8700, -2.1000, 0.5600, 10.2400, -1.8700, 0.5800, 9.9000, -1.6200, -0.4400, 10.1500, 0.4000, -0.0600, 10.0100, 1.1100, 0.4400, 9.9300, -0.6000, -0.1700, 10.2000, -0.6000, -0.1700, 10.2000, -0.9400, -0.5000, 9.8700, 0.4300, -0.1500, 9.8800, -0.3600, -0.8600, 10.1900, -0.2000, -3.1100, 9.9700, -0.5400, -4.9100, 10.0100, -0.5800, -5.0700, 9.9700, -0.5800, -5.0700, 9.9700, -0.9500, -3.9100, 9.4000, -1.0000, -2.1400, 8.8900, -1.1900, -0.8000, 9.2000, -0.8700, -0.0600, 8.4900, 0.2500, -0.3800, 8.7600, 0.2500, -0.3800, 8.7600, -0.5100, -0.5500, 9.4000, -2.2800, -2.1100, 9.9900, 0.8600, -2.7400, 9.4100, 0.9600, -1.3400, 9.6300, 0.5800, -0.6500, 9.6400, 0.0200, -0.9800, 9.6000, 0.0200, -0.9800, 9.6000, -0.2400, -1.2700, 9.8800, 0.1200, -0.6700, 9.0700, 1.2400, -0.3900, 9.0600, 1.6300, 0.5200, 9.6900, 2.2300, 0.9800, 9.4300, 0.9300, 1.4800, 9.6600, 0.9300, 1.4800, 9.6600, 0.7900, 2.3600, 9.6700, 1.5200, 2.8700, 10.4000, 1.5700, 1.8200, 9.8600, 1.6000, 1.9800, 10.0000, 1.4700, 2.7200, 10.3200, 0.9800, 2.9100, 10.3300, 0.9800, 2.9100, 10.3300, 1.3700, 2.2800, 9.5800, 1.4600, 2.0500, 10.1100, 1.1300, 2.4600, 9.8900, 1.1400, 2.6900, 9.5900, 0.2800, 1.2700, 9.8100, -0.5200, 0.9000, 8.5000
-};
-int raw_feature_get_data(size_t offset, size_t length, float *out_ptr) {
-    memcpy(out_ptr, features + offset, length * sizeof(float));
-    return 0;
-}
-
 static float buffer[EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE] = { 0 };
 static float inference_buffer[EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE] = { 0 };
+
+// To prevent false positives we smoothen the results, with readings=10 and time_between_readings=200
+// we look at 2 seconds of data + (length of window (e.g. also 2 seconds)) for the result
+
+// We use N number of readings to smoothen the results over
+#define SMOOTHEN_OVER_READINGS              6
+// Time between readings in milliseconds
+#define SMOOTHEN_TIME_BETWEEN_READINGS      200
 
 /******************************************************************************/
 /* Application Hooks */
@@ -172,13 +135,54 @@ int i2c_init(void)
     return 0;
 }
 
+/**
+ * Roll array elements along a given axis.
+ * Elements that roll beyond the last position are re-introduced at the first.
+ * @param input_array
+ * @param input_array_size
+ * @param shift The number of places by which elements are shifted.
+ * @returns EIDSP_OK if OK
+ */
+static int roll_int(int *input_array, size_t input_array_size, int shift) {
+    if (shift < 0) {
+        shift = input_array_size + shift;
+    }
+
+    if (shift == 0) {
+        return EIDSP_OK;
+    }
+
+    // so we need to allocate a buffer of the size of shift...
+    EI_DSP_MATRIX(shift_matrix, 1, shift);
+
+    // we copy from the end of the buffer into the shift buffer
+    memcpy(shift_matrix.buffer, input_array + input_array_size - shift, shift * sizeof(int));
+
+    // now we do a memmove to shift the array
+    memmove(input_array + shift, input_array, (input_array_size - shift) * sizeof(int));
+
+    // and copy the shift buffer back to the beginning of the array
+    memcpy(input_array, shift_matrix.buffer, shift * sizeof(int));
+
+    return EIDSP_OK;
+}
+
 void inference_task(void *pParameters)
 {
-    printf("Inference Task Started. (ISU%d)\n", i2c_port_num);
-    vTaskDelay(pdMS_TO_TICKS((EI_CLASSIFIER_INTERVAL_MS * EI_CLASSIFIER_RAW_SAMPLE_COUNT) + 100));
+    static int last_readings[SMOOTHEN_OVER_READINGS] = { -1 };
+    static bool first_reading = false;
+
+    printf("Inference Task Started\n");
+
+    // wait until we have a full frame of data
+    vTaskDelay(pdMS_TO_TICKS((EI_CLASSIFIER_INTERVAL_MS * EI_CLASSIFIER_RAW_SAMPLE_COUNT) + SMOOTHEN_OVER_READINGS));
 
     while (1) {
+        // copy into working buffer (other buffer is used by other task)
         memcpy(inference_buffer, buffer, EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE * sizeof(float));
+
+        // roll through the last_readings buffer
+        roll_int(last_readings, SMOOTHEN_OVER_READINGS, -1);
 
         // Turn the raw buffer in a signal which we can the classify
         signal_t signal;
@@ -191,33 +195,101 @@ void inference_task(void *pParameters)
         ei_impulse_result_t result = { 0 };
 
         // invoke the impulse
-        printf("calling run_classifier %ld\n", clock() / CLOCKS_PER_SEC);
         EI_IMPULSE_ERROR res = run_classifier(&signal, &result, false);
-        printf("run_classifier returned: %d\n", res);
 
-        if (res != 0) return;
+        if (res != 0) {
+            printf("run_classifier returned: %d\n", res);
+            return;
+        }
 
-        printf("Predictions (DSP: %d ms., Classification: %d ms., Anomaly: %d ms.): \n",
-            result.timing.dsp, result.timing.classification, result.timing.anomaly);
+        if (first_reading) {
+            printf("Timing = (DSP: %d ms., Classification: %d ms., Anomaly: %d ms.)\n",
+                result.timing.dsp, result.timing.classification, result.timing.anomaly);
+            first_reading = false;
+        }
+
+        int reading = -1; // uncertain
 
         // print the predictions
-        printf("[");
+        // printf("[");
         for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
-            printf("%.5f", result.classification[ix].value);
+            if (result.classification[ix].value > 0.8) {
+                reading = (int)ix;
+            }
+
+            // printf("%.5f", result.classification[ix].value);
     #if EI_CLASSIFIER_HAS_ANOMALY == 1
-            printf(", ");
+            // printf(", ");
     #else
             if (ix != EI_CLASSIFIER_LABEL_COUNT - 1) {
-                printf(", ");
+                // printf(", ");
             }
     #endif
         }
     #if EI_CLASSIFIER_HAS_ANOMALY == 1
-        printf("%.3f", result.anomaly);
+        if (result.anomaly > 0.3) {
+            reading = -2; // anomaly
+        }
+        // printf("%.3f", result.anomaly);
     #endif
+        // printf("]\n");
+
+        last_readings[SMOOTHEN_OVER_READINGS - 1] = reading;
+
+        // now count last 10 readings and see what we actually see...
+        uint8_t count[EI_CLASSIFIER_LABEL_COUNT + 2] = { 0 };
+        for (size_t ix = 0; ix < SMOOTHEN_OVER_READINGS; ix++) {
+            if (last_readings[ix] >= 0) {
+                count[last_readings[ix]]++;
+            }
+            else if (last_readings[ix] == -1) { // uncertain
+                count[EI_CLASSIFIER_LABEL_COUNT]++;
+            }
+            else if (last_readings[ix] == -2) { // anomaly
+                count[EI_CLASSIFIER_LABEL_COUNT + 1]++;
+            }
+        }
+
+        // then loop over the count and see which is highest
+        uint8_t top_result = 0;
+        uint8_t top_count = 0;
+        bool met_confidence_threshold = false;
+        uint8_t confidence_threshold = SMOOTHEN_OVER_READINGS * 0.7; // 70% of windows should be the same
+        for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT + 2; ix++) {
+            if (count[ix] > top_count) {
+                top_result = ix;
+                top_count = count[ix];
+            }
+            if (count[ix] > confidence_threshold) {
+                met_confidence_threshold = true;
+            }
+        }
+
+        if (met_confidence_threshold) {
+            if (top_result == EI_CLASSIFIER_LABEL_COUNT) {
+                printf("UNCERTAIN");
+            }
+            else if (top_result == EI_CLASSIFIER_LABEL_COUNT + 1) {
+                printf("ANOMALY");
+            }
+            else {
+                printf("%s", result.classification[top_result].label);
+            }
+        }
+        else {
+            printf("UNCERTAIN");
+        }
+
+        printf(" [ ");
+        for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT + 2; ix++) {
+            printf("%u", count[ix]);
+            if (ix != EI_CLASSIFIER_LABEL_COUNT + 1) {
+                printf(", ");
+            }
+        }
         printf("]\n");
 
-        vTaskDelay(pdMS_TO_TICKS(200));
+        vTaskDelay(pdMS_TO_TICKS(SMOOTHEN_TIME_BETWEEN_READINGS));
     }
 }
 void i2c_task(void *pParameters)
