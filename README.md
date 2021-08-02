@@ -18,7 +18,7 @@ You'll also need:
 * [Docker desktop](https://www.docker.com/products/docker-desktop) - to build the firmware.
 * A Windows 10 VM with the Azure SDK installed. I couldn't get this to work on Linux (let alone macOS). Make sure `azsphere` is in your PATH, and you've followed the steps to [claim your device](https://docs.microsoft.com/en-us/azure-sphere/install/claim-device) and to [enable development and debugging](https://docs.microsoft.com/en-us/azure-sphere/install/qs-real-time-application?tabs=windows&pivots=cli#enable-development-and-debugging).
 
-## Building and flashing the example
+## Building and flashing the example (Docker)
 
 1. Build the container with all dependencies:
 
@@ -30,6 +30,23 @@ You'll also need:
 
     ```
     $ docker run --rm -it -v $PWD:/app azure-sphere /bin/bash /app/build/build.sh
+    ```
+
+1. Mount the `build` folder to your Windows 10 VM, open a command prompt and navigate to the `build` folder. Then run:
+
+    ```
+    $ flash.bat
+    ```
+
+1. You should now see data coming in from the FTDI Breakout board.
+
+
+## Building and flashing the example (locally installed Azure Sphere SDK - Linux only)
+
+1. Build the firmware:
+
+    ```
+    $ sh ./build/build.sh
     ```
 
 1. Mount the `build` folder to your Windows 10 VM, open a command prompt and navigate to the `build` folder. Then run:

@@ -1,11 +1,12 @@
-FROM ubuntu:18.04
+FROM ubuntu:20.04
 
 WORKDIR /app
 
-RUN apt update && apt install -y net-tools curl cmake ninja-build gpg xz-utils python3 wget
+RUN apt update && apt install -y net-tools curl cmake ninja-build gpg xz-utils python3 wget libgcc-s1 libcap2-bin
 
 COPY ./install_azure_sphere_sdk.sh ./
 
+RUN mkdir -p /etc/udev/rules.d/
 RUN /bin/bash ./install_azure_sphere_sdk.sh
 
 ENV AzureSphereDefaultSDKDir=/opt/azurespheresdk/

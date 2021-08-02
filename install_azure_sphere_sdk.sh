@@ -13,6 +13,7 @@ SDK_TARBALL_URL="https://aka.ms/AzureSphereSDKDownload/Linux"
 SDK_LICENSE_URL="https://aka.ms/AzureSphereSDKLicense/Linux"
 SDK_INSTALL_DOC_URL="https://aka.ms/AzureSphereSDK/Linux"
 SDK_DOC_URL="https://aka.ms/AzureSphereSDK"
+SDK_CLI_SELECTION_DOC_URL="https://aka.ms/AzureSphereCLIVersions"
 
 MICROSOFT_PUBLIC_GPG_KEY_DETAILS_URL="https://aka.ms/AzureSphereSDKVerification/Linux"
 MICROSOFT_PUBLIC_GPG_KEY_URL="https://packages.microsoft.com/keys/microsoft.asc"
@@ -150,7 +151,7 @@ parse_args() {
 }
 
 clear_staging() {
-  if [[ -z "$STAGING_DIR" ]]; then
+  if [[ -d "$STAGING_DIR" ]]; then
     log_verbose "Clearing staged install files."
     rm -rf $STAGING_DIR
   fi
@@ -161,10 +162,10 @@ remove_files() {
     uninstall_previous_version_files
   elif [[ -f "$STAGED_FILE_LIST" ]]; then
     log_info "Removing installed files."
-    # remove_files_from_list $STAGED_FILE_LIST
+    remove_files_from_list $STAGED_FILE_LIST
   fi
 
-  # remove_app_data_dir
+  remove_app_data_dir
 }
 
 remove_udev_config() {
@@ -181,6 +182,7 @@ remove_install() {
   log_info "Removing Azure Sphere CLI from PATH, if present."
   remove_cli_tools_from_path
   log_info "Removing default udev configuration, if present."
+  remove_udev_config
   clear_staging
 }
 
@@ -251,15 +253,30 @@ set_script_locale() {
 }
 
 user_confirm(){
-  return 1
+  return 0
+  # Takes up to two parameters:
+  # $1 Confirmation question, to be followed by a localised " (Y/N)", repeated until the user answers
+  # #2 Optional preamble, not repeated with question. Useful for long confirmation dialogs.
+  RESPONSE=0
+  if [[ ! -z "$2" ]]; then
+    echo -e "$2"
+  fi
+  while true; do
+    read -p "$1 (${LOCAL_Yy["$SCRIPT_LOCALE"]:0:1}/${LOCAL_Nn["$SCRIPT_LOCALE"]:0:1}) " response
+    case $response in
+      [${LOCAL_Yy["$SCRIPT_LOCALE"]}] ) RESPONSE=0; break; ;;
+      [${LOCAL_Nn["$SCRIPT_LOCALE"]}] ) RESPONSE=1; break; ;;
+      * ) echo "${LOCAL_CONFIRM["$SCRIPT_LOCALE"]}"; ;;
+    esac
+  done
+  return $RESPONSE
 }
 
 user_confirm_or_abort() {
   # Takes up to two parameters:
   # $1 Confirmation question, to be followed by a localised " (Y/N)", repeated until the user answers
   # #2 Optional preamble, not repeated with question. Useful for long confirmation dialogs.
-  # if user_confirm "$1" "$2"; then return; else exit_with_error; fi
-  return
+  if user_confirm "$1" "$2"; then return; else exit_with_error; fi
 }
 
 check_EULA() {
@@ -268,9 +285,29 @@ check_EULA() {
 
 check_packages() {
   log_verbose "Checking for required packages:"
-  DEPENDENCIES=(
+
+  # Per https://docs.microsoft.com/en-us/azure-sphere/install/install-sdk-linux we support only Ubuntu 18.04 and 20.04
+  # Add 19.10 for now since we have test machines using 19.10.
+  lsb_release="$(lsb_release -sr)"
+  if [[ $lsb_release == "18.04" ]] || [[ $lsb_release == "19.10" ]]
+  then
+    DEPENDENCIES=(
     "curl"
-    "net-tools")
+    "libssl1.1"
+    "libc6"
+    "libgcc1"
+    "libstdc++6"
+    )
+  else
+    DEPENDENCIES=(
+    "curl"
+    "libssl1.1"
+    "libc6"
+    "libgcc-s1"
+    "libstdc++6"
+    )
+  fi
+
   PACKAGES_MISSING=false
   PACKAGES_MISSING_LIST=""
 
@@ -315,6 +352,7 @@ curl_download_file(){
   # $1 - URL
   # $2 - matcher for downloaded file name
   # $3 - description of downloaded item
+  # $4 - description of matcher for downloaded file name
   # Sets variable DOWNLOADED_FILE_NAME to name of file downloaded and DOWNLOADED_FILE_PATH to the full path
   TEMP_OUT_FILE="$(mktemp -p $STAGING_DIR)"
 
@@ -342,14 +380,14 @@ curl_download_file(){
   elif [ $CURL_RESULT -ne 0 ]; then
     exit_with_error_default_suffix "Curl encountered an error downloading $3."
   elif [[ ! -z "$CURL_ERROR" && mode_verbose ]]; then
-    log_verbose "Encountered non-fatal curl error:\n$CURL_ERROR"
+    log_verbose "Encountered non-fatal curl error downloading $3:\n$CURL_ERROR"
   fi
 
   # Check the file wasn't empty
-  if [[ ! -s "$DOWNLOADED_FILE_PATH" ]]; then exit_with_error_default_suffix "The file downloaded was empty."; fi
+  if [[ ! -s "$DOWNLOADED_FILE_PATH" ]]; then exit_with_error_default_suffix "The downloaded file is empty."; fi
 
   # Check we got the type of file we were expecting from the download
-  if [[ ! "$DOWNLOADED_FILE_NAME" =~ $2 ]]; then exit_with_error_default_suffix "The file downloaded was not in the expected format."; fi
+  if [[ ! "$DOWNLOADED_FILE_NAME" =~ $2 ]]; then exit_with_error_default_suffix "The downloaded file at $DOWNLOADED_FILE_NAME is not in the expected $4 format."; fi
 }
 
 get_sdk_tarball() {
@@ -361,7 +399,7 @@ get_sdk_tarball() {
     log_info "Downloading Azure Sphere SDK tarball from '$SDK_TARBALL_URL'..."
 
     EXPECTED_FORMAT="\.tar.\gz$"
-    curl_download_file $SDK_TARBALL_URL $EXPECTED_FORMAT "the Azure Sphere SDK"
+    curl_download_file $SDK_TARBALL_URL $EXPECTED_FORMAT "the Azure Sphere SDK" "tar archive"
     SDK_TARBALL="$DOWNLOADED_FILE_PATH"
   fi
 }
@@ -424,7 +462,7 @@ check_versions() {
         if [[ "$CURRENT_INSTALLED_VERSION" == "$STAGED_VERSION" ]]; then
           MESSAGE_SUFFIX="Reinstall Azure Sphere SDK version ${STAGED_VERSION}?"
         else
-          MESSAGE_SUFFIX="Overwite it with Azure Sphere SDK version ${STAGED_VERSION}?"
+          MESSAGE_SUFFIX="Overwrite it with Azure Sphere SDK version ${STAGED_VERSION}?"
         fi
       fi
 
@@ -462,7 +500,7 @@ download_microsoft_gpg_public_key() {
   log_verbose "Downloading the Microsoft Public GPG key from '$MICROSOFT_PUBLIC_GPG_KEY_URL'."
 
   EXPECTED_FORMAT="\.asc$"
-  curl_download_file $MICROSOFT_PUBLIC_GPG_KEY_URL $EXPECTED_FORMAT "the Microsoft Public GPG key"
+  curl_download_file $MICROSOFT_PUBLIC_GPG_KEY_URL $EXPECTED_FORMAT "the Microsoft Public GPG key" "ASCII file used by Pretty Good Privacy (PGP)"
   MS_GPG_KEY="$DOWNLOADED_FILE_PATH"
 }
 
@@ -611,12 +649,19 @@ set_sdk_file_permissions() {
     log_warn "Could not set installed directory permissions correctly. This may mean some directories have incorrect permissions."
   fi
 
-  EXECUTABLES=(
-    "$INSTALL_LOCATION/Tools/azsphere"
-    "$INSTALL_LOCATION/Tools/azsphere_connect.sh"
-    "$INSTALL_LOCATION/Tools/azsphere_slattach")
+  if check_if_sdk_includes_v2_cli; then
+    EXECUTABLES=(
+      "$INSTALL_LOCATION/Tools/azsphere"
+      "$INSTALL_LOCATION/DeviceConnection/azsphere_connect.sh"
+      "$INSTALL_LOCATION/DeviceConnection/azsphere_slattach")
+  else
+    EXECUTABLES=(
+      "$INSTALL_LOCATION/Tools/azsphere"
+      "$INSTALL_LOCATION/Tools/azsphere_connect.sh"
+      "$INSTALL_LOCATION/Tools/azsphere_slattach")
+  fi
 
-  log_diag "Setting permissions on installed executable files to 755"
+  log_diag "Setting permissions on installed symlinks to 755"
   for FILE in "${EXECUTABLES[@]}"; do
     chmod 755 "$FILE"
     if [ $? -ne 0 ]; then exit_with_error_default_suffix "Could not mark file $FILE as executable."; fi
@@ -626,7 +671,7 @@ set_sdk_file_permissions() {
 install_sdk_tarball() {
   # Record what files are to be installed for rollback/uninstall support
   tar --list -f "$SDK_INNER_TARBALL" | sed -r -e 's~^~/opt/~' >> $STAGED_FILE_LIST
-  if [ $? -ne 0 ]; then exit_with_error_default_suffix "There was an error extrating the tarball contents from '$SDK_INNER_TARBALL'."; fi
+  if [ $? -ne 0 ]; then exit_with_error_default_suffix "There was an error extracting the tarball contents from '$SDK_INNER_TARBALL'."; fi
 
   # Install files
   unpack "$SDK_INNER_TARBALL" "$INSTALL_DIR"
@@ -654,7 +699,7 @@ install_sdk_toolchains() {
     log_diag "Installing from '$TOOLCHAIN_SH_PATH'."
     echo $TOOLCHAIN_SH_PATH >> $STAGED_FILE_LIST
 
-    # Record what files are to be installed for rollback/uninstall suuport
+    # Record what files are to be installed for rollback/uninstall support
     # Format of self-extracting tarball list, e.g.:
     # -rwxr-xr-x root/root     14680 2019-11-05 01:01 ./sysroots/x86_64-pokysdk-linux/lib/libutil-2.28.so
     # lrwxrwxrwx root/root         0 2019-11-05 01:01 ./sysroots/x86_64-pokysdk-linux/lib/ld-linux-x86-64.so.2 -> ld-2.28.so
@@ -688,6 +733,135 @@ install_sdk_toolchains() {
   done
 }
 
+check_if_sdk_includes_v2_cli() {
+  MAJOR_VERSION_THR="20"
+  MINOR_VERSION_THR="11"
+
+  VERSION_SEGMENTS=($(echo $STAGED_VERSION | tr "." "\n"))
+  VERSION_LENGTH=${#VERSION_SEGMENTS[@]}
+
+  if [ ! $VERSION_LENGTH -ge 2 ]; then
+    exit_with_error_default_suffix "Invalid version."
+  fi
+
+  MAJOR_VERSION_SEGMENT=${VERSION_SEGMENTS[0]}
+  MINOR_VERSION_SEGMENT=${VERSION_SEGMENTS[1]}
+
+  if [ $MAJOR_VERSION_SEGMENT -gt $MAJOR_VERSION_THR ]; then
+    return 0
+  elif [ $MAJOR_VERSION_SEGMENT -lt $MAJOR_VERSION_THR ]; then
+    return -1
+  else # Major equal
+    if [ $MINOR_VERSION_SEGMENT -ge $MINOR_VERSION_THR ]; then
+      return 0
+    else
+      return -1
+    fi
+  fi
+}
+
+configure_links() {
+  CLI_V1_PATH="../Tools/azsphere"
+  CLI_V2_PATH="../Tools_v2/azsphere"
+  CONNECT_PATH="../DeviceConnection/azsphere_connect.sh"
+
+  LINKS_DIR="${INSTALL_LOCATION}/Links"
+  mkdir -p $LINKS_DIR
+  if [ $? -ne 0 ]; then exit_with_error_default_suffix "Failed to create directory ${LINKS_DIR}."; fi
+
+  # Symlinks to the CLIs
+  ln -s $CLI_V1_PATH "${LINKS_DIR}/azsphere_v1"
+  if [ $? -ne 0 ]; then exit_with_error_default_suffix "Could not create symlink ${LINKS_DIR}/azsphere_v1."; fi
+
+  ln -s $CLI_V2_PATH "${LINKS_DIR}/azsphere_v2"
+  if [ $? -ne 0 ]; then exit_with_error_default_suffix "Could not create symlink ${LINKS_DIR}/azsphere_v2."; fi
+
+  # Symlinks to device communication scripts
+  ln -s $CONNECT_PATH "${LINKS_DIR}/azsphere_connect.sh"
+  if [ $? -ne 0 ]; then exit_with_error_default_suffix "Could not create symlink ${LINKS_DIR}/azsphere_connect.sh."; fi
+
+  # Configure default CLI
+  CONFIGURE_CLI_MESSAGE="This SDK contains two versions of the Azure Sphere CLI: the new Azure Sphere CLI (recommended) \
+and Azure Sphere classic CLI (deprecated). \
+See ${SDK_CLI_SELECTION_DOC_URL} for more information on the versions.
+
+You can choose which version is available through the command 'azsphere'.
+
+Note that the Azure Sphere classic CLI will always be available to use with 'azsphere_v1' \
+and the new Azure Sphere CLI will always be available to use with 'azsphere_v2'."
+
+  DEFAULT_CLI_PATH=$CLI_V1_PATH
+  if user_confirm "Use the recommended (new) CLI for 'azsphere'?" "${CONFIGURE_CLI_MESSAGE}"; then
+    DEFAULT_CLI_PATH=$CLI_V2_PATH
+  fi
+
+  ln -s $DEFAULT_CLI_PATH "${LINKS_DIR}/azsphere"
+  if [ $? -ne 0 ]; then exit_with_error_default_suffix "Could not create symlink ${LINKS_DIR}/azsphere."; fi
+
+  # Set permissions and store in staging list
+  EXECUTABLES=(
+      "${LINKS_DIR}/azsphere"
+      "${LINKS_DIR}/azsphere_v1"
+      "${LINKS_DIR}/azsphere_v2"
+      "${LINKS_DIR}/azsphere_connect.sh")
+
+  log_diag "Setting permissions on installed executable files to 755"
+  for FILE in "${EXECUTABLES[@]}"; do
+    chmod 755 "$FILE"
+    if [ $? -ne 0 ]; then exit_with_error_default_suffix "Could not mark file $FILE as executable."; fi
+
+    echo $FILE >> $STAGED_FILE_LIST
+    if [ $? -ne 0 ]; then exit_with_error_default_suffix "There was an error adding executable link to the SDK file list."; fi
+  done
+}
+
+install_cli_v2() {
+  log_info "Installing CLI."
+
+  # Preparation
+  CLI_INSTALLER_DIR="${INSTALL_LOCATION}/Tools_v2_Installer"
+
+  log_diag "Listing CLI files for install file list."
+
+  CLI_TARBALL="${CLI_INSTALLER_DIR}/azsphere-cli-v2.tar.gz"
+  if [[ ! -f "${CLI_TARBALL}" ]]; then exit_with_error_default_suffix "Unexpected error: CLI tarball missing."; fi
+
+  tar --list -f ${CLI_TARBALL} | sed 's/^../\/opt\/azurespheresdk\/Tools_v2\//g' >> ${STAGED_FILE_LIST}
+  if [ $? -ne 0 ]; then exit_with_error_default_suffix "There was an error extracting the tarball contents from '$CLI_TARBALL'."; fi
+
+  # Install files
+  log_diag "Installing CLI files."
+
+  CLI_DIR="${INSTALL_LOCATION}/Tools_v2"
+
+  mkdir -p ${CLI_DIR}
+  if [ $? -ne 0 ]; then exit_with_error_default_suffix "There was an error creating CLI directory '${CLI_DIR}'."; fi
+
+  unpack ${CLI_TARBALL} ${CLI_DIR}
+
+  # Install auto-completion
+  log_diag "Installing auto-completion for CLI."
+
+  COMPLETION_DIR="/etc/bash_completion.d"
+  COMPLETION_SCRIPT="${COMPLETION_DIR}/azsphere-cli"
+  COMPLETION_INSTALL_SCRIPT="${CLI_INSTALLER_DIR}/azsphere.completion"
+
+  mkdir -p ${COMPLETION_DIR}
+  if [ $? -ne 0 ]; then exit_with_error_default_suffix "There was an error creating bash completion directory."; fi
+
+  cat ${COMPLETION_INSTALL_SCRIPT} > ${COMPLETION_SCRIPT}
+  if [ $? -ne 0 ]; then exit_with_error_default_suffix "There was an error creating CLI bash completion script."; fi
+
+  log_diag "Listing CLI auto-completion files for install file list."
+  echo ${COMPLETION_SCRIPT} >> $STAGED_FILE_LIST
+  if [ $? -ne 0 ]; then exit_with_error_default_suffix "There was an error adding CLI bash completion script to the SDK file list."; fi
+
+  # Remove CLI installation directory
+  log_diag "Removing CLI installer directory."
+  rm -rf $CLI_INSTALLER_DIR
+  if [ $? -ne 0 ]; then exit_with_error_default_suffix "There was an error removing the CLI installation directory '$CLI_INSTALLER_DIR'."; fi
+}
+
 install_application_data() {
   # Set up app data dir if it doesn't already exist
   if [[ ! -d $APP_DATA_DIR ]]; then
@@ -696,21 +870,38 @@ install_application_data() {
     log_diag "Created application data directory '$APP_DATA_DIR'."
   fi
 
-  # Save installed file list to config for uninstall
-  cp $STAGED_FILE_LIST $INSTALLED_FILE_LIST
-  if [ $? -ne 0 ]; then exit_with_error_default_suffix "Could not add application data '$INSTALLED_FILE_LIST'."; fi
+  # Save installed version to SDK for version show (azsphere show-version)
+  SDK_VERSION_FILE="${INSTALL_LOCATION}/VERSION"
+  cp $STAGED_VERSION_FILE $SDK_VERSION_FILE
+  if [ $? -ne 0 ]; then exit_with_error_default_suffix "Could not add version file '${SDK_VERSION_FILE}'."; fi
+  chmod 644 $SDK_VERSION_FILE
+
+  echo ${SDK_VERSION_FILE} >> $STAGED_FILE_LIST
+  if [ $? -ne 0 ]; then exit_with_error_default_suffix "There was an error adding '${SDK_VERSION_FILE}' file to the SDK file list."; fi
 
   # Save installed version to config for uninstall
-  cp "$STAGED_VERSION_FILE" $INSTALLED_VERSION_FILE
-  if [ $? -ne 0 ]; then exit_with_error_default_suffix "Could not add application data '$INSTALLED_VERSION_FILE'."; fi
+  cp $STAGED_VERSION_FILE $INSTALLED_VERSION_FILE
+  if [ $? -ne 0 ]; then exit_with_error_default_suffix "Could not add application data '${INSTALLED_VERSION_FILE}'."; fi
   chmod 644 $INSTALLED_VERSION_FILE
+
+  # Save installed file list to config for uninstall
+  cp $STAGED_FILE_LIST $INSTALLED_FILE_LIST
+  if [ $? -ne 0 ]; then exit_with_error_default_suffix "Could not add application data '${INSTALLED_FILE_LIST}'."; fi
 }
 
 install_sdk_files() {
   log_info "Installing SDK files."
+
   install_sdk_tarball
   install_sdk_toolchains
+
+  if check_if_sdk_includes_v2_cli; then
+    install_cli_v2
+    configure_links
+  fi
+
   install_application_data
+
   log_info "SDK installed to '$INSTALL_LOCATION'."
 }
 
@@ -860,35 +1051,53 @@ add_udev_rule_and_group() {
   UDEV_USER_ADDED=false
   UDEV_RULE_ADDED=false
 
-  # if [ -z $CURRENT_USER ]; then
-  #   PROMPT="Set up the default udev rule and group ($UDEV_GROUP)?"
-  # else
-  #   PROMPT="Set up the default udev rule and group ($UDEV_GROUP), and add the current user ($CURRENT_USER) to it?"
-  # fi
+  if [ -z $CURRENT_USER ]; then
+    PROMPT="Set up the default udev rule and group ($UDEV_GROUP)?"
+  else
+    PROMPT="Set up the default udev rule and group ($UDEV_GROUP), and add the current user ($CURRENT_USER) to it?"
+  fi
 
-  # if user_confirm "$PROMPT" "Some device operations require root permissions, or permissions granted by a udev rule."; then
-  #   add_default_udev_group
-  #   add_current_users_to_default_udev_group
-  #   add_default_udev_rule
+  if user_confirm "$PROMPT" "Some device operations require root permissions, or permissions granted by a udev rule."; then
+    add_default_udev_group
+    add_current_users_to_default_udev_group
+    add_default_udev_rule
 
-  #   if [[ "$UDEV_GROUP_ADDED" == true ]] || [[ "$UDEV_USER_ADDED" == true ]] || [[ "$UDEV_RULE_ADDED" == true ]]; then
-  #     log_info "Default udev rule set up complete. You will need to reboot your machine for these changes to take effect."
-  #   else
-  #     log_info "Default udev rule set up complete."
-  #   fi
-  # fi
+    if [[ "$UDEV_GROUP_ADDED" == true ]] || [[ "$UDEV_USER_ADDED" == true ]] || [[ "$UDEV_RULE_ADDED" == true ]]; then
+      log_info "Default udev rule set up complete. You will need to reboot your machine for these changes to take effect."
+    else
+      log_info "Default udev rule set up complete."
+    fi
+  fi
+
+  if user_confirm "Set network admin capabilities to azsphere_slattach. This will allow running azsphere_connect.sh with no 'sudo' elevation, if the user running it has R&W permissions on the USB Azure Sphere device is connected."; then
+    log_diag "Setting network admin capabilities to azsphere_slattach"
+    if check_if_sdk_includes_v2_cli; then
+      setcap CAP_NET_ADMIN+ep "$INSTALL_LOCATION/DeviceConnection/azsphere_slattach"
+    else
+      setcap CAP_NET_ADMIN+ep "$INSTALL_LOCATION/Tools/azsphere_slattach"
+    fi
+    if [ $? -ne 0 ]; then exit_with_error_default_suffix "Could not set network admin capabilities to azsphere_slattach."; fi
+  fi
 
   return 0
 }
 
 add_cli_tools_to_path() {
   # Adds the CLI to the path by creating a profile.d file
-  if user_confirm "Add the Azure Sphere CLI Tools to the PATH for all users (this will add a file to /etc/profile.d/)?"; then
-    log_verbose "Setting up PATH variable for Azure Sphere CLI Tools."
-    PROFILED_CONTENT="export PATH=\"\$PATH:$INSTALL_LOCATION/Tools\""
+  if user_confirm "Add the Azure Sphere CLI and device connection script to the PATH for all users (this will add a file to /etc/profile.d/)?"; then
+    log_verbose "Setting up PATH variable for Azure Sphere CLI and scripts."
+
+    if check_if_sdk_includes_v2_cli; then
+      AZSPHERE_PATH="${INSTALL_LOCATION}/Links"
+    else
+      AZSPHERE_PATH="${INSTALL_LOCATION}/Tools"
+    fi
+
+    PROFILED_CONTENT="export PATH=\"\$PATH:${AZSPHERE_PATH}\""
+
     log_diag "Writing to '$PROFILED_PATH'."
     echo $PROFILED_CONTENT > $PROFILED_PATH
-    log_info "Azure Sphere CLI Tools added to PATH for all users. You will need to restart your user session for this change to take effect."
+    log_info "Azure Sphere CLI and device connection script added to PATH for all users. You will need to restart your user session for this change to take effect."
   fi
 }
 
